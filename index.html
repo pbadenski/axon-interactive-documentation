@@ -1,6 +1,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+<script src="animations.js"></script>
+<script src="views.js"></script>
 <style>
 rect {
   opacity: 0.5;
@@ -12,214 +15,241 @@ path {
   fill: white;
   stroke: black;
 }
+.effects-transfer {
+  border: 3px dotted black;
+}
 </style>
-
 <script>
-function generateArray(size, n) {
-  var arr = [];
-  for (i = 0; i < size; i++) {
-    arr.push(n); 
-  }
-  return arr;
+var dashize = function (word) {
+  return word.replace(/\s+/g, '-').toLowerCase(); 
+}
+var createVerticalTable = function (model) {
+ var concat = function (x, xs) { return x + xs };
+ return "<div style='float: left; padding: 10px'>" + 
+    "<div style='text-align: center'>" + model.name + "</div>" +
+      "<table border='1' class='" + dashize(model.name) + "'>" +
+         "<tr>" +
+           _.reduce(_.mapObject(model.data[0], function (value, key) {
+             return "<td class='" + key + "-label'>" + key + "</td>";
+           }), concat, "") +
+         "</tr>" +
+      _.reduce(_.map(model.data, function (each, idx) { 
+         return "<tr class='" + idx + "'>" +
+             _.reduce(_.mapObject(each, function (value, key) {
+               return "<td class='" + key + "'>" + value + "</td>"
+             }), concat, "") +
+          "</tr>";
+         }), concat, "") +
+       "</table>" +
+  "</div>";
+}
+var createHorizontalTable = function (model) {
+ var concat = function (x, xs) { return x + xs };
+ return "<div style='float: left; padding: 10px'>" + 
+    "<div style='text-align: center'>" + model.name + "</div>" +
+      "<table border='1' class='" + dashize(model.name) + "'>" +
+         _.reduce(_.mapObject(model.data[0], function (value, key) {
+           return "<tr>" +
+             "<td class='" + key + "-label'>" + key + "</td>" +
+            _.reduce(_.map(model.data, function (each, idx) { 
+              return "<td class='" + idx + " " + key + "'>" + each[key] + "</td>";
+             }), concat, "") +
+          "</tr>";
+         }), concat, "") +
+       "</table>" +
+  "</div>"
+}
+var highlight = function (elem, duration, o) {
+  o = o || {};
+  var color = o.color || '#60a0d0';
+  return new TimelineMax()
+     .to(elem, 0, {backgroundColor: 'white', fill: 'white'})
+     .to(elem, duration/2, {backgroundColor: color, fill: color})
+     .to(elem, duration/2, {backgroundColor: 'white', fill: 'white'})
+};
+var transfer = function (o, duration) {
+ var animation = new TimelineMax();
+ o.from.each(function (idx, from) {
+   o.to.each(function (idx, to) {
+     var startPosition = $(from).offset();
+     var endPosition = $(to).offset();
+     var transferBlock = $( "<div class='effects-transfer'></div>" )
+      .appendTo(document.body)
+      .css({
+          top: startPosition.top,
+          left: startPosition.left,
+          height: $(from).innerHeight(),
+          width: $(from).innerWidth(),
+          position: "absolute"
+      })
+     animation.add(new TimelineMax({onComplete: function () { transferBlock.remove() }})
+      .to(transferBlock, duration, {top: endPosition.top, left: endPosition.left, height: $(to).innerHeight(), width: $(to).innerWidth() }), 0)
+    })
+ })
+ return animation;
 }
 $(function () {
- var svg = d3.select("body")
-    .append("svg")
-      .attr("width", "1200px")
-      .attr("height", "1200px")
-
-  var commandBlock = function (command) {
-    var group = svg
-      .selectAll(".command")
-      .data([command]);
-
-    var entering = group.enter().append("g")
-      .attr("class", "command");
-  
-    entering.append("rect")
-      .attr("class", "box")
-      .attr("width", "350px")
-      .attr("height", "100px")
-    entering.append("text")
-      .attr("y", "20px")
-      .attr("x", "10px")
-
-    group.select("text").text("")
-
-    group.exit().remove();
-    return group;
-  };
-
-  var disruptorCommandBus = function (command) {
-    var group = svg
-      .selectAll(".disruptor")
-      .data([command]);
-
-    var entering = group.enter()
-      .append("g")
-      .attr("class", "disruptor")
-      .attr("transform", "translate(0, 200)");
-     
-    entering.append("rect")
-        .attr("class", "box")
-        .attr("width", "350px")
-        .attr("height", "100px")
-
-    entering.append("text")
-        .attr("y", "20px")
-        .attr("x", "10px");
-
-    group.select("text").text("")
-
-    group.exit().remove();
-  };
-
-
-  var ringBuffer = function () {
-    var radius = 200;
-    var arc = d3.svg.arc()
-        .outerRadius(radius - 10)
-        .innerRadius(radius - 70);
-
-    var pie = d3.layout.pie()
-        .value(function(d) { return d; });
-
-    var ringBuffer = svg.append("g")
-      .attr("class", "ring-buffer")
-      .attr("transform", "translate(" + 600 + "," + 300 + ")")
-
-    var g = ringBuffer.selectAll(".arc")
-          .data(pie(generateArray(128, 2)))
-        .enter().append("g")
-          .attr("class", "arc");
-
-      g.append("path")
-          .attr("class", function (d, i) { return "ring-buffer-" + i; })
-          .attr("d", arc)
-
-      g.append("text")
-          .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
-          .attr("dy", ".35em")
-          .style("text-anchor", "middle")
-  }();
-
- var invokers = function (sequences) {
-   var data = [
-    {invokerId: 0, sequence: 0},
-    {invokerId: 1, sequence: 0},
-    {invokerId: 2, sequence: 0},
-    {invokerId: 3, sequence: 0}
-   ];
-   var barHeight = 50;
-   var y = d3.scale.linear()
-        .domain([0, d3.max(_.pluck(data, "invokerId"))])
-        .range([0, barHeight * data.length]);
-   var group = svg
-     .selectAll(".invokers")
-     .data(data)
-
-   var entering = group.enter().append("g")
-     .attr("class", function (d) { return "invokers invoker-" + d.invokerId})
-     .attr("transform", "translate(" + 850 + "," + 0 + ")")
-
-   entering.append("rect")
-     .attr("class", "index-box")
-     .attr("y", function (d) { return y(d.invokerId); })
-     .attr("width", "50")
-     .attr("height", barHeight)
-
-   entering.append("rect")
-     .attr("y", function (d) { return y(d.invokerId); })
-     .attr("width", "350px")
-     .attr("height", barHeight)
-
-   entering.append("text")
-     .attr("x", 20)
-     .attr("y", function (d) { return y(d.invokerId) + 30; })
-     .text(function (d, i) { return i; })
-
-   entering.append("text")
-     .attr("class", "text-sequence")
-     .attr("x", 120)
-     .attr("y", function (d) { return y(d.invokerId) + 30; })
-  
-   group.select(".text-sequence")
-     .text(function (d) { return JSON.stringify({sequence: d.sequence}); })
+  var ANIMATION_PAUSE = 2;
+  var toProcess = [ 
+     function () {
+       var animation = new TimelineMax();
+       animation.add(highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE), 0)
+       animation.add(
+        transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .commandHandlingEntry" )}, ANIMATION_PAUSE), 0
+       ).call(function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1") })
+       animation.add(
+        transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE), 0
+       ).call(function () { $(".disruptor-command-bus .sequence").html("0"); })
+       return animation;
+     }, 
+     function () {
+       var animation = new TimelineMax();
+       animation.add(TweenLite.to($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE, {opacity: 1}, 0))
+       animation.add(TweenLite.to($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE, {opacity: 1}, 0))
+       return animation;
+     },
+     function () {
+       var animation = new TimelineMax();
+       animation.add(highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE), 0)
+       animation.add(
+        transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .commandHandlingEntry")}, ANIMATION_PAUSE), 0
+       ).call(function () { $(".disruptor-command-bus .invokerSegment").html("0"); })
+       return animation;
+     }, 
+     function () {
+       var animation = new TimelineMax();
+       animation.add(highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE), 0)
+       animation.add(
+         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .currentSequence")}, ANIMATION_PAUSE), 0
+       );
+       return animation;
+     }, 
+     function () {
+       var animation = new TimelineMax();
+       animation.add(highlight($(".disruptor-command-bus"), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".command-handler-invoker .currentSequence"), ANIMATION_PAUSE), 0)
+       return animation;
+     }, 
+     function () {
+       var animation = new TimelineMax();
+       animation.add(highlight($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".command-handler-invokey .0 .segmentId"), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".command-handler-invoker .0 .processing"), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".command-handler-invoker .1 .segmentId", {color: "red"}), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".command-handler-invoker .2 .segmentId", {color: "red"}), ANIMATION_PAUSE), 0)
+       animation.add(highlight($(".command-handler-invoker .3 .segmentId", {color: "red"}), ANIMATION_PAUSE), 0)
+       $(".command-handler-invoker .0 .processing").html("Yes")
+       $(".command-handler-invoker .1 .currentSequence").html("1")
+       $(".command-handler-invoker .2 .currentSequence").html("1")
+       $(".command-handler-invoker .3 .currentSequence").html("1")
+       return animation;
+     }
+   ]; 
+ var disruptorCommandBusModel = {
+   name: "disruptor command bus",
+   data: [
+     {
+       commandHandlingEntry: "#1",
+       aggregateId: "0d2b8c57-7ba0-4914-9fc0-e7ee0813a367",
+       sequence: 0,
+       invokerSegment: 0
+     }
+   ]
  };
- var ANIMATION_SPEED = 5000;
-  var blink = function (element, color) { 
-    var duration = ANIMATION_SPEED / 2;
-    element
-      .style("fill", (color || "#60a0b0"))
-      .duration(duration)
-      .transition()
-      .style("fill", "white")
-  }
+ var ringBufferModel = {
+   name: "ring buffer",
+   data: [
+     {
+       sequence: 0,
+       contents: "CommandHandlingEntry #1"
+     },
+     {
+       sequence: 1,
+       contents: "CommandHandlingEntry #2"
+     },
+     {
+       sequence: 2,
+       contents: "CommandHandlingEntry #3"
+     },
+     {
+       sequence: 3,
+       contents: "CommandHandlingEntry #4"
+     },
+   ]
+ };
+ var commandHandlerInvokerModel = {
+   name: "command handler invoker",
+   data: [
+     {
+       segmentId: 0,
+       currentSequence: 0,
+       processing: "No"
+     },
+     {
+       segmentId: 1,
+       currentSequence: 0,
+       processing: "No"
+     },
+     {
+       segmentId: 2,
+       currentSequence: 0,
+       processing: "No"
+     },
+     {
+       segmentId: 3,
+       currentSequence: 0,
+       processing: "No"
+     },
+   ]
+ };
+ $("#main").append(createHorizontalTable(disruptorCommandBusModel))
+ var addRingBuffer = function (where) {
+  var svg = d3.select("#main")
+     .append("svg")
+       .style("float", "left")
+       .attr("width", "400px")
+       .attr("height", "400px")
+   var radius = 200;
+   var arc = d3.svg.arc()
+       .outerRadius(radius - 10)
+       .innerRadius(radius - 70);
 
+   var pie = d3.layout.pie()
+       .value(function(d) { return d; });
 
-  invokers();
-  
-  var acceptCommand = function (command) {
-    commandBlock("");
-    disruptorCommandBus("");
-    commandBlock(command)
+   var ringBuffer = svg.append("g")
+     .attr("class", "ring-buffer")
+     .attr("transform", "translate(" + 200 + "," + 200 + ")")
 
-    var updateCommand = d3.select(".command").transition()
-    updateCommand.select("text").text(function (d) { return JSON.stringify(d)})
-    blink(updateCommand.select(".box"))
-  };
-  var dispatchCommand = function (commandEntry) {
-    disruptorCommandBus(commandEntry);
-    var updateDisruptor = d3.select(".disruptor").transition()
-    updateDisruptor.select("text").text(function (d) { return JSON.stringify(d)})
-    blink(updateDisruptor.select(".box"))
+   var g = ringBuffer.selectAll(".arc")
+         .data(pie([1, 1, 1, 1]))
+         .enter().append("g")
+         .attr("class", function (d, idx) { return idx; })
+         .append("g")
+         .attr("class", function (d, idx) { return "arc sequence contents"; });
 
-    d3.select(".ring-buffer-" + Math.floor(commandEntry.sequence / 32))
-      .transition()
-      .duration(ANIMATION_SPEED)
-      .style("fill", "green")
-  }
-  var pullCommand = function (invokerId, nextSequence) {
-    d3.select(".invoker-" + invokerId + " .text-sequence")
-      .transition()
-      .text(JSON.stringify({sequence: nextSequence}))
-    blink(d3.select(".invoker-" + invokerId + " .index-box").transition())
+     g.append("path")
+         .attr("class", function (d, i) { return "sequence contents"; })
+         .attr("d", arc)
 
-  }
-  var invokeCommand = function (invokerId, nextSequence) {
-    d3.select(".invoker-" + invokerId + " rect").transition().delay(0).style("fill", "green")
+     g.append("text")
+         .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
+         .attr("dy", ".35em")
+         .style("text-anchor", "middle")
+ }();
+ // $("#main").append(createVerticalTable(ringBufferModel));
+ $("#main").append(createVerticalTable(commandHandlerInvokerModel));
 
-    d3.select(".ring-buffer-" + Math.floor(nextSequence / 32))
-      .transition()
-      .duration(ANIMATION_SPEED)
-      .style("fill", "white")
-  };
-
-  var toProcess = [
-    function () { acceptCommand({id: "1b8fdd50-9a82-4748-880a-e5a015835003"}) },
-    function () { dispatchCommand({sequence: 0, invokerId: 3}) },
-    function () { 
-      pullCommand(0, 1)
-      pullCommand(1, 1)
-      pullCommand(2, 1)
-      pullCommand(3, 1)
-      invokeCommand(3, 0)
-    },
-    function () { acceptCommand({id: "0d2b8c57-7ba0-4914-9fc0-e7ee0813a367"}) },
-    function () { dispatchCommand({sequence: 1, invokerId: 1}) },
-    function () { 
-      pullCommand(0, 2)
-      pullCommand(1, 2)
-      pullCommand(2, 2)
-      invokeCommand(1, 2)
-    }
-  ];
-  var animate = function () {
-    if (toProcess.length > 0) {
-      toProcess.shift()();
-      setTimeout(animate, ANIMATION_SPEED)
-    }
-  };
-  animate();
+ $(".disruptor-command-bus .aggregateId").css({opacity: 0})
+ $(".disruptor-command-bus .invokerSegment").css({opacity: 0 })
+ var animation = new TimelineMax({paused: true})
+ animation.add(_.first(toProcess))
+ _.each(_.rest(toProcess), function (each) {
+   animation.add(each, "+=" + ANIMATION_PAUSE)
+ });
+ animation.play()
 });
 </script>
+<body id="main">
+</body> 
