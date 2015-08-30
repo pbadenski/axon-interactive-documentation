@@ -20,130 +20,51 @@ path {
 }
 </style>
 <script>
-var dashize = function (word) {
-  return word.replace(/\s+/g, '-').toLowerCase(); 
-}
-var createVerticalTable = function (model) {
- var concat = function (x, xs) { return x + xs };
- return "<div style='float: left; padding: 10px'>" + 
-    "<div style='text-align: center'>" + model.name + "</div>" +
-      "<table border='1' class='" + dashize(model.name) + "'>" +
-         "<tr>" +
-           _.reduce(_.mapObject(model.data[0], function (value, key) {
-             return "<td class='" + key + "-label'>" + key + "</td>";
-           }), concat, "") +
-         "</tr>" +
-      _.reduce(_.map(model.data, function (each, idx) { 
-         return "<tr class='" + idx + "'>" +
-             _.reduce(_.mapObject(each, function (value, key) {
-               return "<td class='" + key + "'>" + value + "</td>"
-             }), concat, "") +
-          "</tr>";
-         }), concat, "") +
-       "</table>" +
-  "</div>";
-}
-var createHorizontalTable = function (model) {
- var concat = function (x, xs) { return x + xs };
- return "<div style='float: left; padding: 10px'>" + 
-    "<div style='text-align: center'>" + model.name + "</div>" +
-      "<table border='1' class='" + dashize(model.name) + "'>" +
-         _.reduce(_.mapObject(model.data[0], function (value, key) {
-           return "<tr>" +
-             "<td class='" + key + "-label'>" + key + "</td>" +
-            _.reduce(_.map(model.data, function (each, idx) { 
-              return "<td class='" + idx + " " + key + "'>" + each[key] + "</td>";
-             }), concat, "") +
-          "</tr>";
-         }), concat, "") +
-       "</table>" +
-  "</div>"
-}
-var highlight = function (elem, duration, o) {
-  o = o || {};
-  var color = o.color || '#60a0d0';
-  return new TimelineMax()
-     .to(elem, 0, {backgroundColor: 'white', fill: 'white'})
-     .to(elem, duration/2, {backgroundColor: color, fill: color})
-     .to(elem, duration/2, {backgroundColor: 'white', fill: 'white'})
-};
-var transfer = function (o, duration) {
- var animation = new TimelineMax();
- o.from.each(function (idx, from) {
-   o.to.each(function (idx, to) {
-     var startPosition = $(from).offset();
-     var endPosition = $(to).offset();
-     var transferBlock = $( "<div class='effects-transfer'></div>" )
-      .appendTo(document.body)
-      .css({
-          top: startPosition.top,
-          left: startPosition.left,
-          height: $(from).innerHeight(),
-          width: $(from).innerWidth(),
-          position: "absolute"
-      })
-     animation.add(new TimelineMax({onComplete: function () { transferBlock.remove() }})
-      .to(transferBlock, duration, {top: endPosition.top, left: endPosition.left, height: $(to).innerHeight(), width: $(to).innerWidth() }), 0)
-    })
- })
- return animation;
-}
 $(function () {
   var ANIMATION_PAUSE = 2;
-  var toProcess = [ 
+  var frames = [ 
      function () {
-       var animation = new TimelineMax();
-       animation.add(highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE), 0)
-       animation.add(
-        transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .commandHandlingEntry" )}, ANIMATION_PAUSE), 0
-       ).call(function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1") })
-       animation.add(
-        transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE), 0
-       ).call(function () { $(".disruptor-command-bus .sequence").html("0"); })
-       return animation;
+       return [
+         highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
+         transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .commandHandlingEntry" )}, ANIMATION_PAUSE),
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1") }),
+         transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html("0"); })]
      }, 
      function () {
-       var animation = new TimelineMax();
-       animation.add(TweenLite.to($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE, {opacity: 1}, 0))
-       animation.add(TweenLite.to($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE, {opacity: 1}, 0))
-       return animation;
+       return [
+         TweenLite.to($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE, {opacity: 1}, 0),
+         TweenLite.to($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE, {opacity: 1}, 0)]
      },
      function () {
-       var animation = new TimelineMax();
-       animation.add(highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE), 0)
-       animation.add(
-        transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .commandHandlingEntry")}, ANIMATION_PAUSE), 0
-       ).call(function () { $(".disruptor-command-bus .invokerSegment").html("0"); })
-       return animation;
+       return [
+         highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE),
+         transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .commandHandlingEntry")}, ANIMATION_PAUSE),
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .invokerSegment").html("0"); })]
      }, 
      function () {
-       var animation = new TimelineMax();
-       animation.add(highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE), 0)
-       animation.add(
-         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .currentSequence")}, ANIMATION_PAUSE), 0
-       );
-       return animation;
+       return [
+         highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
+         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .currentSequence")}, ANIMATION_PAUSE)]
      }, 
      function () {
-       var animation = new TimelineMax();
-       animation.add(highlight($(".disruptor-command-bus"), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".command-handler-invoker .currentSequence"), ANIMATION_PAUSE), 0)
-       return animation;
+       return [
+         highlight($(".disruptor-command-bus"), ANIMATION_PAUSE),
+         highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
+         highlight($(".command-handler-invoker .currentSequence"), ANIMATION_PAUSE)]
      }, 
      function () {
-       var animation = new TimelineMax();
-       animation.add(highlight($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".command-handler-invokey .0 .segmentId"), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".command-handler-invoker .0 .processing"), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".command-handler-invoker .1 .segmentId", {color: "red"}), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".command-handler-invoker .2 .segmentId", {color: "red"}), ANIMATION_PAUSE), 0)
-       animation.add(highlight($(".command-handler-invoker .3 .segmentId", {color: "red"}), ANIMATION_PAUSE), 0)
        $(".command-handler-invoker .0 .processing").html("Yes")
        $(".command-handler-invoker .1 .currentSequence").html("1")
        $(".command-handler-invoker .2 .currentSequence").html("1")
        $(".command-handler-invoker .3 .currentSequence").html("1")
-       return animation;
+       return [
+         highlight($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE),
+         highlight($(".command-handler-invokey .0 .segmentId"), ANIMATION_PAUSE),
+         highlight($(".command-handler-invoker .0 .processing"), ANIMATION_PAUSE),
+         highlight($(".command-handler-invoker .1 .segmentId", {color: "red"}), ANIMATION_PAUSE),
+         highlight($(".command-handler-invoker .2 .segmentId", {color: "red"}), ANIMATION_PAUSE),
+         highlight($(".command-handler-invoker .3 .segmentId", {color: "red"}), ANIMATION_PAUSE)]
      }
    ]; 
  var disruptorCommandBusModel = {
@@ -244,9 +165,9 @@ $(function () {
  $(".disruptor-command-bus .aggregateId").css({opacity: 0})
  $(".disruptor-command-bus .invokerSegment").css({opacity: 0 })
  var animation = new TimelineMax({paused: true})
- animation.add(_.first(toProcess))
- _.each(_.rest(toProcess), function (each) {
-   animation.add(each, "+=" + ANIMATION_PAUSE)
+ animation.add(_.first(frames))
+ _.each(_.rest(frames), function (frame) {
+   animation.add(frame, "+=" + ANIMATION_PAUSE)
  });
  animation.play()
 });
