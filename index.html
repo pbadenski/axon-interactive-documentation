@@ -2,6 +2,7 @@
 <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+<script src="gsap-timeline-slider.js"></script>
 <script src="animations.js"></script>
 <script src="views.js"></script>
 <style>
@@ -29,18 +30,27 @@ $(function () {
          transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .commandHandlingEntry" )}, ANIMATION_PAUSE),
          TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1") }),
          transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
-         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html("0"); })]
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html("0"); }),
+         highlight($(".messages .0"), ANIMATION_PAUSE/2),
+         TweenLite.fromTo($(".messages .0"), 1, {height: 0}, {opacity: 1, height: 100, backgroundColor: "#60a0d0"})
+       ]
      }, 
      function () {
        return [
          TweenLite.to($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE, {opacity: 1}, 0),
-         TweenLite.to($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE, {opacity: 1}, 0)]
+         TweenLite.to($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE, {opacity: 1}, 0),
+         highlight($(".messages .1"), ANIMATION_PAUSE/2),
+         TweenLite.to($(".messages .1"), 1, {opacity: 1, height: 100, backgroundColor: "#60a0d0"})
+       ]
      },
      function () {
        return [
          highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE),
          transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .commandHandlingEntry")}, ANIMATION_PAUSE),
-         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .invokerSegment").html("0"); })]
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .invokerSegment").html("0"); }),
+         highlight($(".messages .2"), ANIMATION_PAUSE/2),
+         TweenLite.fromTo($(".messages .2"), 1, {height: 0}, {opacity: 1, height: 100, backgroundColor: "#60a0d0"})
+       ]
      }, 
      function () {
        return [
@@ -169,8 +179,15 @@ $(function () {
  _.each(_.rest(frames), function (frame) {
    animation.add(frame, "+=" + ANIMATION_PAUSE)
  });
- animation.play()
 });
 </script>
-<body id="main">
+<body>
+  <div id="slider"></div>
+  <div id="main"></div>
+  <br style="clear: both"></div>
+  <div class="messages">
+    <div class="2" style="padding: 10px; height: 0; opacity: 0">Explaining even more stuff</div>
+    <div class="1" style="padding: 10px; height: 0; opacity: 0">Explaining more stuff</div>
+    <div class="0" style="padding: 10px; height: 0; opacity: 0">Explaining stuff</div>
+  </div>
 </body> 
