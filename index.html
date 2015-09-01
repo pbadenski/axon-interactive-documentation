@@ -30,11 +30,15 @@ path {
 </style>
 <script>
 $(function () {
-  var ANIMATION_PAUSE = 2;
+  var ANIMATION_PAUSE = 1.5;
   var newMessage = function (idx) {
      return [
        TweenLite.to($(".messages ." + (idx - 1)), 1, {backgroundColor: "white"}),
-       TweenLite.to($(".messages ." + idx), 1, {opacity: 1, height: 120, backgroundColor: "rgba(96, 160, 208, 0.5)"})
+       TweenLite.to($(".messages ." + idx), 1, {height: "auto"}), 
+       TweenLite.to($(".messages ." + idx), 1, {
+         opacity: 1, 
+         backgroundColor: "rgba(96, 160, 208, 0.5)",
+      })
      ]
   }
   var initializeAggregateIdInDisruptorCommandBus = function (aggregateId) {
@@ -207,7 +211,7 @@ $(function () {
  frames = _.map(frames, function (frame, idx) {
   return function () { return [frame(), newMessage(idx)] };
  })
- var animation = new TimelineMax({paused: true})
+ var animation = new TimelineMax({paused: true, ease: Quad.easeOut})
  animation.add("0")
  animation.add(_.first(frames)())
  _.each(_.rest(frames), function (frame, idx) {
@@ -232,7 +236,7 @@ $(function () {
    animationControl.disable()
    animation.seek(animation.getLabelBefore()); 
    animation.seek(Math.max(0, animation.getLabelTime(animation.getLabelBefore()))); 
-   animation.tweenTo(animation.getLabelAfter(), {onComplete: animationControl.enable}); 
+   animation.tweenTo(animation.getLabelAfter(), {ease: Quad.easeOut, onComplete: animationControl.enable}); 
  });
  $("#next").click(function () { 
    animationControl.disable()
