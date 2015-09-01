@@ -208,15 +208,44 @@ $(function () {
   return function () { return [frame(), newMessage(idx)] };
  })
  var animation = new TimelineMax({paused: true})
+ animation.add("0")
  animation.add(_.first(frames)())
- _.each(_.rest(frames), function (frame) {
+ _.each(_.rest(frames), function (frame, idx) {
+   animation.add("" + idx)
    animation.add(frame(), "+=" + ANIMATION_PAUSE)
  });
- animation.play();
+ $("#play.paused").click(function () { 
+    animation.paused(!$(this).hasClass("paused"));
+    $(this).toggleClass("paused") 
+    if ($(this).hasClass("paused")) {
+      $(this).html("play")
+    } else {
+      $(this).html("||")
+    }
+ });
+ var animationControl = {
+   enable: function () { $("#slider *").prop("disabled", false); },
+   disable: function () { $("#slider *").prop("disabled", true); }
+ }
+ $("#play").not(".paused").click(function () { animation.pause(); });
+ $("#prev").click(function () { 
+   animationControl.disable()
+   animation.seek(animation.getLabelBefore()); 
+   animation.seek(Math.max(0, animation.getLabelTime(animation.getLabelBefore()))); 
+   animation.tweenTo(animation.getLabelAfter(), {onComplete: animationControl.enable}); 
+ });
+ $("#next").click(function () { 
+   animationControl.disable()
+   animation.tweenTo(animation.getLabelAfter(), {onComplete: animationControl.enable}); 
+ });
 });
 </script>
 <body>
-  <div id="slider"></div>
+  <div id="slider" style="padding: 15px">
+    <button id="prev">prev</button>
+    <button id="play" class="paused">play</button>
+    <button id="next">next</button>
+  </div>
   <div id="main"></div>
   <br style="clear: both"></div>
   <div class="messages">
