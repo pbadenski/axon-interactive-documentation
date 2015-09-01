@@ -7,24 +7,30 @@ var highlight = function (elem, duration, o) {
      .to(elem, duration/2, {backgroundColor: 'white', fill: 'white'})
 };
 var transfer = function (o, duration) {
- var animation = new TimelineMax();
+ var allTransfers = new TimelineMax();
  o.from.each(function (idx, from) {
    o.to.each(function (idx, to) {
-     var startPosition = $(from).offset();
-     var endPosition = $(to).offset();
+     var transfer = new TimelineMax({onComplete: function () { transferBlock.remove() }})
      var transferBlock = $( "<div class='effects-transfer'></div>" )
-      .appendTo(document.body)
-      .css({
-          top: startPosition.top,
-          left: startPosition.left,
-          height: $(from).innerHeight(),
-          width: $(from).innerWidth(),
-          position: "absolute"
-      })
-     animation.add(new TimelineMax({onComplete: function () { transferBlock.remove() }})
-      .to(transferBlock, duration, {top: endPosition.top, left: endPosition.left, height: $(to).innerHeight(), width: $(to).innerWidth() }), 0)
+     transfer.add(highlight($(from), duration), 0);
+     transfer.add(highlight($(to), duration), 0);
+     transfer.add(TweenLite.delayedCall(0, function () { transferBlock.appendTo(document.body) }), 0)
+     transfer.add(function () { 
+       var startPosition = $(from).offset();
+       var endPosition = $(to).offset();
+       transferBlock
+        .css({
+            top: startPosition.top,
+            left: startPosition.left,
+            height: $(from).innerHeight(),
+            width: $(from).innerWidth(),
+            position: "absolute"
+        })
+       return TweenLite.to(transferBlock, duration, {top: endPosition.top, left: endPosition.left, height: $(to).innerHeight(), width: $(to).innerWidth() })
+     }, 0)
+     allTransfers.add(transfer, 0)
     })
  })
- return animation;
+ return allTransfers;
 }
 
