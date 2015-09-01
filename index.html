@@ -43,8 +43,7 @@ $(function () {
            highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE/2),
            TweenLite.delayedCall(0, function () { 
             $(".disruptor-command-bus .aggregateId").html(aggregateId); 
-           }),
-           newMessage(0)
+           })
          ]};
      };
   var assignInvokerId = function () {
@@ -53,30 +52,26 @@ $(function () {
          transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .invokerSegment"  )}, ANIMATION_PAUSE),
          TweenLite.delayedCall(0, function () { 
           $(".disruptor-command-bus .invokerSegment").html(0); 
-         }),
-         newMessage(1)
+         })
        ]
      };
   var nextSequenceFromRingBuffer = function () {
      return [
        transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html("0") }),
-       newMessage(2)
+       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html("0") })
      ]
    }; 
   var getEventForSequence = function () {
      return [
        highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
        transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .commandHandlingEntry" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1"); }),
-       newMessage(3)
+       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1"); })
      ]
    };
   var publishEventForSequence = function () {
      return [
        highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
-       highlight($(".disruptor-command-bus .commandHandlingEntry"), ANIMATION_PAUSE),
-       newMessage(4)
+       highlight($(".disruptor-command-bus .commandHandlingEntry"), ANIMATION_PAUSE)
      ]
    };
 
@@ -88,8 +83,7 @@ $(function () {
      publishEventForSequence,
      function () {
        return [
-         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .currentSequence")}, ANIMATION_PAUSE),
-         newMessage(4)
+         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .currentSequence")}, ANIMATION_PAUSE)
        ]
      }, 
      function () {
@@ -210,6 +204,9 @@ $(function () {
  $("#main").append(createVerticalTable(commandHandlerInvokerModel));
  $("table").addClass("pure-table pure-table-bordered")
 
+ frames = _.map(frames, function (frame, idx) {
+  return function () { return [frame(), newMessage(idx)] };
+ })
  var animation = new TimelineMax({paused: true})
  animation.add(_.first(frames)())
  _.each(_.rest(frames), function (frame) {
