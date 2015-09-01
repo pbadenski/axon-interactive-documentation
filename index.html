@@ -44,7 +44,7 @@ $(function () {
   var initializeAggregateIdInDisruptorCommandBus = function (aggregateId) {
        return function () { 
          return [
-           highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE/2),
+           highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE),
            TweenLite.delayedCall(0, function () { 
             $(".disruptor-command-bus .aggregateId").html(aggregateId); 
            })
@@ -68,14 +68,14 @@ $(function () {
   var getEventForSequence = function () {
      return [
        highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
-       transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .commandHandlingEntry" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .commandHandlingEntry").html("#1"); })
+       transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .event" )}, ANIMATION_PAUSE),
+       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .event").html("#1"); })
      ]
    };
   var publishEventForSequence = function () {
      return [
        highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
-       highlight($(".disruptor-command-bus .commandHandlingEntry"), ANIMATION_PAUSE)
+       highlight($(".disruptor-command-bus .event"), ANIMATION_PAUSE)
      ]
    };
 
@@ -87,39 +87,42 @@ $(function () {
      publishEventForSequence,
      function () {
        return [
-         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .currentSequence")}, ANIMATION_PAUSE)
+         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .sequence")}, ANIMATION_PAUSE)
        ]
      }, 
      function () {
        return [
-         highlight($(".disruptor-command-bus"), ANIMATION_PAUSE),
+         highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
          highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .currentSequence"), ANIMATION_PAUSE)]
+         TweenLite.delayedCall(0, function () { 
+           $(".command-handler-invoker .sequence").html("0")
+         }),
+         highlight($(".command-handler-invoker .sequence"), ANIMATION_PAUSE)]
      }, 
      function () {
        return [
          TweenLite.delayedCall(0, function () { 
-           $(".command-handler-invoker .0 .processing").html("Yes")
-           $(".command-handler-invoker .1 .currentSequence").html("1")
-           $(".command-handler-invoker .2 .currentSequence").html("1")
-           $(".command-handler-invoker .3 .currentSequence").html("1")
+           $(".command-handler-invoker .0 .processing").html("#1")
+           $(".command-handler-invoker .sequence").html("")
          }),
          highlight($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE),
-         highlight($(".command-handler-invokey .0 .segmentId"), ANIMATION_PAUSE),
+         highlight($(".command-handler-invoker .0 .segmentId"), ANIMATION_PAUSE),
          highlight($(".command-handler-invoker .0 .processing"), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .1 .segmentId", {color: "red"}), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .2 .segmentId", {color: "red"}), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .3 .segmentId", {color: "red"}), ANIMATION_PAUSE)]
+         highlight($(".command-handler-invoker .1 .segmentId"), ANIMATION_PAUSE, {color: "red"}),
+         highlight($(".command-handler-invoker .2 .segmentId"), ANIMATION_PAUSE, {color: "red"}),
+         highlight($(".command-handler-invoker .3 .segmentId"), ANIMATION_PAUSE, {color: "red"})
+       ]
      }
    ]; 
  var disruptorCommandBusModel = {
    name: "disruptor command bus",
+   title: "DisruptorCommandBus",
    data: [
      {
-       commandHandlingEntry: "",
        aggregateId: "",
        sequence: "",
-       invokerSegment: ""
+       invokerSegment: "",
+       event: "",
      }
    ]
  };
@@ -146,26 +149,27 @@ $(function () {
  };
  var commandHandlerInvokerModel = {
    name: "command handler invoker",
+   title: "CommandHandlerInvoker - separate threads",
    data: [
      {
        segmentId: 0,
-       currentSequence: 0,
-       processing: "No"
+       sequence: "",
+       processing: ""
      },
      {
        segmentId: 1,
-       currentSequence: 0,
-       processing: "No"
+       sequence: "",
+       processing: ""
      },
      {
        segmentId: 2,
-       currentSequence: 0,
-       processing: "No"
+       sequence: "",
+       processing: ""
      },
      {
        segmentId: 3,
-       currentSequence: 0,
-       processing: "No"
+       sequence: "",
+       processing: ""
      },
    ]
  };
@@ -208,6 +212,13 @@ $(function () {
  $("#main").append(createVerticalTable(commandHandlerInvokerModel));
  $("table").addClass("pure-table pure-table-bordered")
 
+ $(".aggregateId-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L271' target='_blank'>" + $(this).html() + "</a>"; })
+ $(".sequence-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L285' target='_blank'>" + $(this).html() + "</a>"; })
+ $(".invokerSegment-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L275' target='_blank'>" + $(this).html() + "</a>"; })
+ $(".event-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L287' target='_blank'>" + $(this).html() + "</a>"; })
+
+ $(".segmentId-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/CommandHandlerInvoker.java#L57' target='_blank'>" + $(this).html() + "</a>"; })
+
  frames = _.map(frames, function (frame, idx) {
   return function () { return [frame(), newMessage(idx)] };
  })
@@ -216,14 +227,14 @@ $(function () {
  animation.add(_.first(frames)())
  _.each(_.rest(frames), function (frame, idx) {
    animation.add("" + idx)
-   animation.add(frame(), "+=" + ANIMATION_PAUSE)
+   animation.add(frame(), "+=0")
  });
- $("#play.paused").click(function () { 
-    animation.paused(!$(this).hasClass("paused"));
-    $(this).toggleClass("paused") 
-    if ($(this).hasClass("paused")) {
+ $("#play").click(function () { 
+    if ($(this).toggleClass("paused").hasClass("paused")) {
+      animation.pause()
       $(this).html("play")
     } else {
+      animation.play()
       $(this).html("||")
     }
  });

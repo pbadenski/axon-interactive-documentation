@@ -4,7 +4,7 @@ var dashize = function (word) {
 var createVerticalTable = function (model) {
  var concat = function (x, xs) { return x + xs };
  return "<div style='float: left; padding: 10px'>" + 
-    "<div style='text-align: center'>" + model.name + "</div>" +
+    "<div style='text-align: center'>" + (model.title || model.name) + "</div>" +
       "<table border='1' class='" + dashize(model.name) + "'>" +
          "<thead>" +
          "<tr>" +
@@ -28,7 +28,7 @@ var createVerticalTable = function (model) {
 var createHorizontalTable = function (model) {
  var concat = function (x, xs) { return x + xs };
  return "<div style='float: left; padding: 10px'>" + 
-    "<div style='text-align: center'>" + model.name + "</div>" +
+    "<div style='text-align: center'>" + (model.title || model.name) + "</div>" +
       "<table border='1' class='" + dashize(model.name) + "'>" +
          _.reduce(_.mapObject(model.data[0], function (value, key) {
            return "<tr>" +
