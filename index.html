@@ -42,77 +42,78 @@ $(function () {
      ]
   }
   var initializeAggregateIdInDisruptorCommandBus = function (aggregateId) {
-       return function () { 
-         return [
+       return function () { return [
            highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE),
            TweenLite.delayedCall(0, function () { 
             $(".disruptor-command-bus .aggregateId").html(aggregateId); 
            })
          ]};
      };
-  var assignInvokerId = function () {
-       return [
-         highlight($(), ANIMATION_PAUSE/2),
+  var assignInvokerId = function (invokerId) {
+       return function () { return [
          transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .invokerSegment"  )}, ANIMATION_PAUSE),
          TweenLite.delayedCall(0, function () { 
-          $(".disruptor-command-bus .invokerSegment").html(0); 
+          $(".disruptor-command-bus .invokerSegment").html(invokerId); 
          })
-       ]
+       ]};
      };
-  var nextSequenceFromRingBuffer = function () {
-     return [
-       transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html("0") })
-     ]
+  var nextSequenceFromRingBuffer = function (sequence) {
+     return function () { return [
+       transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
+       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html(sequence) })
+     ]};
    }; 
-  var getEventForSequence = function () {
-     return [
+  var getEventForSequence = function (sequence, event) {
+     return function () { return [
        highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
-       transfer({from: $(".ring-buffer .0 .contents"), to: $( ".disruptor-command-bus .event" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .event").html("#1"); })
-     ]
+       transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $( ".disruptor-command-bus .event" )}, ANIMATION_PAUSE),
+       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .event").html(event); })
+     ]};
    };
-  var publishEventForSequence = function () {
-     return [
-       highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
+  var publishEventForSequence = function (sequence) {
+     return function () { return [
+       highlight($(".ring-buffer ." + sequence + " .contents"), ANIMATION_PAUSE),
        highlight($(".disruptor-command-bus .event"), ANIMATION_PAUSE)
-     ]
+     ]};
+   };
+  var tryStartProcessEventOnInvoker = function (invokerId, eventInvokerId, sequence) {
+     return function () { 
+       var frames = [
+         transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $(".command-handler-invoker ." + invokerId)}, ANIMATION_PAUSE)
+       ];
+       if (invokerId == eventInvokerId) {
+         frames.push(highlight($(".command-handler-invoker ." + invokerId + " .segmentId"), ANIMATION_PAUSE, {color: "green"}))
+         frames.push(TweenLite.delayedCall(0, function () { 
+           $(".command-handler-invoker ." + invokerId + " .processing").html($(".disruptor-command-bus .event").html())
+         }))
+       } else {
+         frames.push(highlight($(".command-handler-invoker ." + invokerId + " .segmentId"), ANIMATION_PAUSE, {color: "red"}))
+       }
+       return frames;
+      };
+   };
+  var endProcessEventOnInvoker = function (invokerId, eventInvokerId, sequence) {
+     return function () { 
+       return [
+         highlight($(".command-handler-invoker ." + invokerId), ANIMATION_PAUSE),
+         TweenLite.delayedCall(0, function () { 
+            $(".command-handler-invoker ." + invokerId + " .processing").html("")
+         }) 
+       ];
+      };
    };
 
   var frames = [ 
      initializeAggregateIdInDisruptorCommandBus("0d2b8c57-7ba0-4914-9fc0-e7ee0813a367"),
-     assignInvokerId,
-     nextSequenceFromRingBuffer,
-     getEventForSequence,
-     publishEventForSequence,
-     function () {
-       return [
-         transfer({from: $(".ring-buffer .0 .contents"), to: $(".command-handler-invoker .sequence")}, ANIMATION_PAUSE)
-       ]
-     }, 
-     function () {
-       return [
-         highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
-         highlight($(".ring-buffer .0 .contents"), ANIMATION_PAUSE),
-         TweenLite.delayedCall(0, function () { 
-           $(".command-handler-invoker .sequence").html("0")
-         }),
-         highlight($(".command-handler-invoker .sequence"), ANIMATION_PAUSE)]
-     }, 
-     function () {
-       return [
-         TweenLite.delayedCall(0, function () { 
-           $(".command-handler-invoker .0 .processing").html("#1")
-           $(".command-handler-invoker .sequence").html("")
-         }),
-         highlight($(".disruptor-command-bus .invokerSegment"), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .0 .segmentId"), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .0 .processing"), ANIMATION_PAUSE),
-         highlight($(".command-handler-invoker .1 .segmentId"), ANIMATION_PAUSE, {color: "red"}),
-         highlight($(".command-handler-invoker .2 .segmentId"), ANIMATION_PAUSE, {color: "red"}),
-         highlight($(".command-handler-invoker .3 .segmentId"), ANIMATION_PAUSE, {color: "red"})
-       ]
-     }
+     assignInvokerId(0),
+     nextSequenceFromRingBuffer(0),
+     getEventForSequence(0, "(id = 983)"),
+     publishEventForSequence(0),
+     tryStartProcessEventOnInvoker(0, 0, 0),
+     tryStartProcessEventOnInvoker(1, 0, 0),
+     tryStartProcessEventOnInvoker(2, 0, 0),
+     tryStartProcessEventOnInvoker(3, 0, 0),
+     endProcessEventOnInvoker(0, 0, 0),
    ]; 
  var disruptorCommandBusModel = {
    name: "disruptor command bus",
@@ -153,22 +154,18 @@ $(function () {
    data: [
      {
        segmentId: 0,
-       sequence: "",
        processing: ""
      },
      {
        segmentId: 1,
-       sequence: "",
        processing: ""
      },
      {
        segmentId: 2,
-       sequence: "",
        processing: ""
      },
      {
        segmentId: 3,
-       sequence: "",
        processing: ""
      },
    ]
@@ -223,11 +220,9 @@ $(function () {
   return function () { return [frame(), newMessage(idx)] };
  })
  var animation = new TimelineMax({paused: true, ease: Quad.easeOut})
- animation.add("0")
- animation.add(_.first(frames)())
- _.each(_.rest(frames), function (frame, idx) {
+ _.each(frames, function (frame, idx) {
    animation.add("" + idx)
-   animation.add(frame(), "+=0")
+   animation.add(frame(), "+=0.01")
  });
  $("#play").click(function () { 
     if ($(this).toggleClass("paused").hasClass("paused")) {
