@@ -28,82 +28,98 @@ path {
 .messages div {
   padding: 10px;
   height: 0;
-  opacity: 0;
+  display: none;
 }
 </style>
 <script>
 $(function () {
   var ANIMATION_PAUSE = 1.5;
-  var newMessage = function (idx) {
+  var newMessage = function (idx, cssClass) {
+     var message = $("<div class='" + idx + "'>" + ($(".templates ." + cssClass).html() || "(no description)") + "</div>");
+     $(".messages").prepend(message)
      return [
        TweenLite.to($(".messages ." + (idx - 1)), 1, {backgroundColor: "white"}),
-       TweenLite.to($(".messages ." + idx), 1, {height: "auto"}), 
-       TweenLite.to($(".messages ." + idx), 1, {
-         opacity: 1, 
+       TweenLite.to(message, 1, {height: "auto"}), 
+       TweenLite.to(message, 1, {
+         display: "block", 
          backgroundColor: "rgba(96, 160, 208, 0.5)",
       })
      ]
   }
   var initializeAggregateIdInDisruptorCommandBus = function (aggregateId) {
-       return function () { return [
+       return {
+         message: "initialize-aggregate-id-in-disruptor-command-bus", 
+         create: function () { return [
            highlight($(".disruptor-command-bus .aggregateId"), ANIMATION_PAUSE),
            TweenLite.delayedCall(0, function () { 
             $(".disruptor-command-bus .aggregateId").html(aggregateId); 
            })
-         ]};
+         ]}};
      };
   var assignInvokerId = function (invokerId) {
-       return function () { return [
+    return {
+       message: "assign-invoker-id", 
+       create: function () { return [
          transfer({from: $(".disruptor-command-bus .aggregateId"), to: $(".disruptor-command-bus .invokerSegment"  )}, ANIMATION_PAUSE),
          TweenLite.delayedCall(0, function () { 
           $(".disruptor-command-bus .invokerSegment").html(invokerId); 
          })
-       ]};
-     };
+     ]}};
+  };
   var nextSequenceFromRingBuffer = function (sequence) {
-     return function () { return [
-       transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html(sequence) })
-     ]};
+     return {
+       message: "next-sequence-from-ring-buffer", 
+       create: function () { return [
+         transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $( ".disruptor-command-bus .sequence" )}, ANIMATION_PAUSE),
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .sequence").html(sequence) })
+       ]}};
    }; 
   var getEventForSequence = function (sequence, event) {
-     return function () { return [
-       highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
-       transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $( ".disruptor-command-bus .event" )}, ANIMATION_PAUSE),
-       TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .event").html(event); })
-     ]};
+     return {
+       message: "get-event-for-sequence", 
+       create: function () { return [
+         highlight($(".disruptor-command-bus .sequence"), ANIMATION_PAUSE),
+         transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $( ".disruptor-command-bus .event" )}, ANIMATION_PAUSE),
+         TweenLite.delayedCall(0, function () { $(".disruptor-command-bus .event").html(event); })
+     ]}};
    };
   var publishEventForSequence = function (sequence) {
-     return function () { return [
-       highlight($(".ring-buffer ." + sequence + " .contents"), ANIMATION_PAUSE),
-       highlight($(".disruptor-command-bus .event"), ANIMATION_PAUSE)
-     ]};
+     return {
+       message: "publish-event-for-sequence", 
+       create: function () { return [
+         highlight($(".ring-buffer ." + sequence + " .contents"), ANIMATION_PAUSE),
+         highlight($(".disruptor-command-bus .event"), ANIMATION_PAUSE)
+     ]}};
    };
   var tryStartProcessEventOnInvoker = function (invokerId, eventInvokerId, sequence) {
-     return function () { 
-       var frames = [
-         transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $(".command-handler-invoker ." + invokerId)}, ANIMATION_PAUSE)
-       ];
-       if (invokerId == eventInvokerId) {
-         frames.push(highlight($(".command-handler-invoker ." + invokerId + " .segmentId"), ANIMATION_PAUSE, {color: "green"}))
-         frames.push(TweenLite.delayedCall(0, function () { 
-           $(".command-handler-invoker ." + invokerId + " .processing").html($(".disruptor-command-bus .event").html())
-         }))
-       } else {
-         frames.push(highlight($(".command-handler-invoker ." + invokerId + " .segmentId"), ANIMATION_PAUSE, {color: "red"}))
-       }
-       return frames;
-      };
+     return {
+       message: "try-start-process-event-on-invoker",
+       create: function () { 
+         var frames = [
+           transfer({from: $(".ring-buffer ." + sequence + " .contents"), to: $(".command-handler-invoker ." + invokerId)}, ANIMATION_PAUSE)
+         ];
+         if (invokerId == eventInvokerId) {
+           frames.push(highlight($(".command-handler-invoker ." + invokerId + " .segmentId"), ANIMATION_PAUSE, {color: "green"}))
+           frames.push(TweenLite.delayedCall(0, function () { 
+             $(".command-handler-invoker ." + invokerId + " .processing").html($(".disruptor-command-bus .event").html())
+           }))
+         } else {
+           frames.push(highlight($(".command-handler-invoker ." + invokerId + " .segmentId"), ANIMATION_PAUSE, {color: "red"}))
+         }
+         return frames;
+      }};
    };
   var endProcessEventOnInvoker = function (invokerId, eventInvokerId, sequence) {
-     return function () { 
-       return [
-         highlight($(".command-handler-invoker ." + invokerId), ANIMATION_PAUSE),
-         TweenLite.delayedCall(0, function () { 
-            $(".command-handler-invoker ." + invokerId + " .processing").html("")
-         }) 
-       ];
-      };
+     return {
+       message: "end-process-event-on-invoker",
+       create: function () { 
+         return [
+           highlight($(".command-handler-invoker ." + invokerId), ANIMATION_PAUSE),
+           TweenLite.delayedCall(0, function () { 
+              $(".command-handler-invoker ." + invokerId + " .processing").html("")
+           }) 
+         ];
+      }};
    };
 
   var frames = [ 
@@ -132,7 +148,7 @@ $(function () {
  $(".segmentId-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/CommandHandlerInvoker.java#L57' target='_blank'>" + $(this).html() + "</a>"; })
 
  frames = _.map(frames, function (frame, idx) {
-  return function () { return [frame(), newMessage(idx)] };
+  return function () { return [frame.create(), newMessage(idx, frame.message)] };
  })
  var animation = new TimelineMax({paused: true, ease: Quad.easeOut})
  _.each(frames, function (frame, idx) {
@@ -151,32 +167,34 @@ $(function () {
   <div id="main"></div>
   <br style="clear: both"></div>
   <div class="messages">
-    <div class="5">
-          LMax BatchEventProcessor fetches next available sequence from the RingBuffer
-          <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">long nextSequence = sequence.get() + 1L;</a></pre>
-         and then delegates it to all consumers - in this case all instances of CommandHandlerInvoker
-          <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</a></pre>
+  </div>
+  <div class="templates" style="display: none">
+    <div class="initialize-aggregate-id-in-disruptor-command-bus">
+      AggregateIdentifier for the command being currently processed is identified:
+      <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L271" target="_blank">Object aggregateIdentifier = commandTargetResolver.resolveTarget(command).getIdentifier();</a></pre>
     </div>
-    <div class="4">
-          DisruptorCommandBus publishes the sequence to ring buffer, making CommandHandlingEntry available to be consumed.
-          <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">ringBuffer.publish(sequence);</a></pre>
-         and then delegates it to all instances of CommandHandlerInvoker
-          <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</a></pre>
+    <div class="assign-invoker-id">
+      InvokerSegment is assigned based on the consistent hash of aggregateId: <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L275" target="_blank">invokerSegment = idHash % commandHandlerInvokers.length;</a></pre>
     </div>
-    <div class="3">
+    <div class="next-sequence-from-ring-buffer">
+      DisruptorCommandBus pulls next available sequence from the ring buffer: <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L285" target="_blank">long sequence = ringBuffer.next();</a></pre>
+    </div>
+    <div class="get-event-for-sequence">
       Based on the current sequence DisruptorCommandBus fetches the instance of CommandHandlingEntry from RingBuffer.
 <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L287" target="_blank">CommandHandlingEntry event = ringBuffer.get(sequence);</a></pre>
  CommandHandlingEntry will then be initialized with current context data. 
     </div>
-    <div class="2">
-      DisruptorCommandBus pulls next available sequence from the ring buffer: <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L285" target="_blank">long sequence = ringBuffer.next();</a></pre>
+    <div class="publish-event-for-sequence">
+      DisruptorCommandBus publishes the sequence to ring buffer, making CommandHandlingEntry available to be consumed.
+      <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">ringBuffer.publish(sequence);</a></pre>
+     and then delegates it to all instances of CommandHandlerInvoker
+      <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</a></pre>
     </div>
-    <div class="1">
-      InvokerSegment is assigned based on the consistent hash of aggregateId: <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L275" target="_blank">invokerSegment = idHash % commandHandlerInvokers.length;</a></pre>
-    </div>
-    <div class="0">
-      AggregateIdentifier for the command being currently processed is identified:
-      <pre><a href="https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/DisruptorCommandBus.java#L271" target="_blank">Object aggregateIdentifier = commandTargetResolver.resolveTarget(command).getIdentifier();</a></pre>
+    <div class="try-start-process-event-on-invoker">
+      LMax BatchEventProcessor fetches next available sequence from the RingBuffer
+      <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">long nextSequence = sequence.get() + 1L;</a></pre>
+     and then delegates it to all consumers - in this case all instances of CommandHandlerInvoker
+      <pre><a href="https://github.com/LMAX-Exchange/disruptor/blob/3.3.2/src/main/java/com/lmax/disruptor/BatchEventProcessor.java#L116-L128" target="_blank">eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</a></pre>
     </div>
   </div>
 </body> 
