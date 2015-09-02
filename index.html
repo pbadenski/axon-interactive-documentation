@@ -2,8 +2,11 @@
 <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
-<script src="animations.js"></script>
+<script src="helpers/animations.js"></script>
+<script src="helpers/views.js"></script>
 <script src="views.js"></script>
+<script src="models.js"></script>
+<script src="slider.js"></script>
 <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
 <style>
 rect {
@@ -115,97 +118,9 @@ $(function () {
      tryStartProcessEventOnInvoker(3, 0, 0),
      endProcessEventOnInvoker(0, 0, 0),
    ]; 
- var disruptorCommandBusModel = {
-   name: "disruptor command bus",
-   title: "DisruptorCommandBus",
-   data: [
-     {
-       aggregateId: "",
-       sequence: "",
-       invokerSegment: "",
-       event: "",
-     }
-   ]
- };
- var ringBufferModel = {
-   name: "ring buffer",
-   data: [
-     {
-       sequence: 0,
-       contents: "CommandHandlingEntry #1"
-     },
-     {
-       sequence: 1,
-       contents: "CommandHandlingEntry #2"
-     },
-     {
-       sequence: 2,
-       contents: "CommandHandlingEntry #3"
-     },
-     {
-       sequence: 3,
-       contents: "CommandHandlingEntry #4"
-     },
-   ]
- };
- var commandHandlerInvokerModel = {
-   name: "command handler invoker",
-   title: "CommandHandlerInvoker - separate threads",
-   data: [
-     {
-       segmentId: 0,
-       processing: ""
-     },
-     {
-       segmentId: 1,
-       processing: ""
-     },
-     {
-       segmentId: 2,
-       processing: ""
-     },
-     {
-       segmentId: 3,
-       processing: ""
-     },
-   ]
- };
  $("#main").append(createHorizontalTable(disruptorCommandBusModel))
- var addRingBuffer = function (where) {
-  var svg = d3.select("#main")
-     .append("svg")
-       .style("float", "left")
-       .attr("width", "400px")
-       .attr("height", "400px")
-   var radius = 200;
-   var arc = d3.svg.arc()
-       .outerRadius(radius - 10)
-       .innerRadius(radius - 70);
-
-   var pie = d3.layout.pie()
-       .value(function(d) { return d; });
-
-   var ringBuffer = svg.append("g")
-     .attr("class", "ring-buffer")
-     .attr("transform", "translate(" + 200 + "," + 200 + ")")
-
-   var g = ringBuffer.selectAll(".arc")
-         .data(pie([1, 1, 1, 1]))
-         .enter().append("g")
-         .attr("class", function (d, idx) { return idx; })
-         .append("g")
-         .attr("class", function (d, idx) { return "arc sequence contents"; });
-
-     g.append("path")
-         .attr("class", function (d, i) { return "sequence contents"; })
-         .attr("d", arc)
-
-     g.append("text")
-         .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
-         .attr("dy", ".35em")
-         .style("text-anchor", "middle")
- }();
  // $("#main").append(createVerticalTable(ringBufferModel));
+ addRingBuffer("#main")
  $("#main").append(createVerticalTable(commandHandlerInvokerModel));
  $("table").addClass("pure-table pure-table-bordered")
 
@@ -224,30 +139,7 @@ $(function () {
    animation.add("" + idx)
    animation.add(frame(), "+=0.01")
  });
- $("#play").click(function () { 
-    if ($(this).toggleClass("paused").hasClass("paused")) {
-      animation.pause()
-      $(this).html("play")
-    } else {
-      animation.play()
-      $(this).html("||")
-    }
- });
- var animationControl = {
-   enable: function () { $("#slider *").prop("disabled", false); },
-   disable: function () { $("#slider *").prop("disabled", true); }
- }
- $("#play").not(".paused").click(function () { animation.pause(); });
- $("#prev").click(function () { 
-   animationControl.disable()
-   animation.seek(animation.getLabelBefore()); 
-   animation.seek(Math.max(0, animation.getLabelTime(animation.getLabelBefore()))); 
-   animation.tweenTo(animation.getLabelAfter(), {ease: Quad.easeOut, onComplete: animationControl.enable}); 
- });
- $("#next").click(function () { 
-   animationControl.disable()
-   animation.tweenTo(animation.getLabelAfter(), {onComplete: animationControl.enable}); 
- });
+ slider.configure(animation)
 });
 </script>
 <body>

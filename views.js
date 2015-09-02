@@ -1,44 +1,34 @@
-var dashize = function (word) {
-  return word.replace(/\s+/g, '-').toLowerCase(); 
-}
-var createVerticalTable = function (model) {
- var concat = function (x, xs) { return x + xs };
- return "<div style='float: left; padding: 10px'>" + 
-    "<div style='text-align: center'>" + (model.title || model.name) + "</div>" +
-      "<table border='1' class='" + dashize(model.name) + "'>" +
-         "<thead>" +
-         "<tr>" +
-           _.reduce(_.mapObject(model.data[0], function (value, key) {
-             return "<th class='" + key + "-label'>" + key + "</th>";
-           }), concat, "") +
-         "</tr>" +
-         "</thead>" +
-         "<tbody>" +
-      _.reduce(_.map(model.data, function (each, idx) { 
-         return "<tr class='" + idx + "'>" +
-             _.reduce(_.mapObject(each, function (value, key) {
-               return "<td class='" + key + "'>" + value + "</td>"
-             }), concat, "") +
-          "</tr>";
-         }), concat, "") +
-         "</tbody>" +
-       "</table>" +
-  "</div>";
-}
-var createHorizontalTable = function (model) {
- var concat = function (x, xs) { return x + xs };
- return "<div style='float: left; padding: 10px'>" + 
-    "<div style='text-align: center'>" + (model.title || model.name) + "</div>" +
-      "<table border='1' class='" + dashize(model.name) + "'>" +
-         _.reduce(_.mapObject(model.data[0], function (value, key) {
-           return "<tr>" +
-             "<th class='" + key + "-label'>" + key + "</th>" +
-            _.reduce(_.map(model.data, function (each, idx) { 
-              return "<td class='" + idx + " " + key + "'>" + each[key] + "</td>";
-             }), concat, "") +
-          "</tr>";
-         }), concat, "") +
-       "</table>" +
-  "</div>"
-}
+var addRingBuffer = function (where) {
+  var svg = d3.select(where)
+     .append("svg")
+       .style("float", "left")
+       .attr("width", "400px")
+       .attr("height", "400px")
+  var radius = 200;
+  var arc = d3.svg.arc()
+      .outerRadius(radius - 10)
+      .innerRadius(radius - 70);
 
+  var pie = d3.layout.pie()
+      .value(function(d) { return d; });
+
+  var ringBuffer = svg.append("g")
+    .attr("class", "ring-buffer")
+    .attr("transform", "translate(" + 200 + "," + 200 + ")")
+
+  var g = ringBuffer.selectAll(".arc")
+        .data(pie([1, 1, 1, 1]))
+        .enter().append("g")
+        .attr("class", function (d, idx) { return idx; })
+        .append("g")
+        .attr("class", function (d, idx) { return "arc sequence contents"; });
+
+    g.append("path")
+        .attr("class", function (d, i) { return "sequence contents"; })
+        .attr("d", arc)
+
+    g.append("text")
+        .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
+        .attr("dy", ".35em")
+        .style("text-anchor", "middle")
+};
