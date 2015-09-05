@@ -109,7 +109,7 @@ $(function () {
          return frames;
       }};
    };
-  var endProcessEventOnInvoker = function (invokerId, eventInvokerId, sequence) {
+  var endProcessEventOnInvoker = function (invokerId, sequence) {
      return {
        message: "end-process-event-on-invoker",
        create: function () { 
@@ -121,19 +121,21 @@ $(function () {
          ];
       }};
    };
+  var clearDisruptorCommandBus = function () {
+     return {
+       message: "clear-disruptor-command-bus",
+       create: function () { 
+         return [
+           TweenLite.delayedCall(0, function () { 
+              $(".disruptor-command-bus .aggregateId").html("")
+              $(".disruptor-command-bus .sequence").html("")
+              $(".disruptor-command-bus .invokerSegment").html("")
+              $(".disruptor-command-bus .event").html("")
+           }) 
+         ];
+      }};
+   };
 
-  var frames = [ 
-     initializeAggregateIdInDisruptorCommandBus("0d2b8c57-7ba0-4914-9fc0-e7ee0813a367"),
-     assignInvokerId(0),
-     nextSequenceFromRingBuffer(0),
-     getEventForSequence(0, "(id = 983)"),
-     publishEventForSequence(0),
-     tryStartProcessEventOnInvoker(0, 0, 0),
-     tryStartProcessEventOnInvoker(1, 0, 0),
-     tryStartProcessEventOnInvoker(2, 0, 0),
-     tryStartProcessEventOnInvoker(3, 0, 0),
-     endProcessEventOnInvoker(0, 0, 0),
-   ]; 
  $("#main").append(createHorizontalTable(disruptorCommandBusModel))
  // $("#main").append(createVerticalTable(ringBufferModel));
  addRingBuffer("#main")
@@ -147,6 +149,51 @@ $(function () {
 
  $(".segmentId-label").html(function () { return "<a href='https://github.com/AxonFramework/AxonFramework/blob/axon-2.4.x/core/src/main/java/org/axonframework/commandhandling/disruptor/CommandHandlerInvoker.java#L57' target='_blank'>" + $(this).html() + "</a>"; })
 
+var buildFrames = function(inCommandBus, inInvokers) {
+  var frames = [];
+  frames.push(initializeAggregateIdInDisruptorCommandBus(inCommandBus.aggregateIdentifier));
+  frames.push(assignInvokerId(inCommandBus.invokerSegment));
+  frames.push(nextSequenceFromRingBuffer(inCommandBus.sequence));
+  frames.push(getEventForSequence(inCommandBus.sequence, inCommandBus.event));
+  frames.push(publishEventForSequence(inCommandBus.sequence));
+  frames = frames.concat(_.map(inInvokers, function (each) {
+    if (each.type == "entry") {
+      return tryStartProcessEventOnInvoker(each.invokerSegment, each.segmentId, each.sequence);
+    } else if (each.type == "exit") {
+      return endProcessEventOnInvoker(each.segmentId, each.sequence);
+    }
+  }));
+  frames.push(clearDisruptorCommandBus());
+  return frames;
+};
+ var frames = [];
+ frames = frames.concat(buildFrames(
+    {aggregateIdentifier: "20d765fd-59b2-47cd-894f-6c144e3b01a5", invokerSegment: 1, sequence: 0, event: "(id = 983)"}, 
+    [{type: "entry", invokerSegment: 1, segmentId: 1, sequence: 0},
+     {type: "entry", invokerSegment: 0, segmentId: 1, sequence: 0},
+     {type: "entry", invokerSegment: 3, segmentId: 1, sequence: 0},
+     {type: "entry", invokerSegment: 4, segmentId: 1, sequence: 0},
+     {type: "entry", invokerSegment: 2, segmentId: 1, sequence: 0},
+     {type: "exit", segmentId: 1, sequence: 0}
+    ]));
+ frames = frames.concat(buildFrames(
+    {aggregateIdentifier: "9c4855a7-373b-474c-a989-83b0385b0099", invokerSegment: 2, sequence: 1, event: "(id = 1173)"},
+    [{type: "entry", invokerSegment: 0, segmentId: 2, sequence: 1},
+      {type: "entry", invokerSegment: 3, segmentId: 2, sequence: 1},
+      {type: "entry", invokerSegment: 4, segmentId: 2, sequence: 1},
+      {type: "entry", invokerSegment: 2, segmentId: 2, sequence: 1},
+      {type: "entry", invokerSegment: 1, segmentId: 2, sequence: 1},
+      {type: "exit", segmentId: 2, sequence: 1}
+    ]));
+ frames = frames.concat(buildFrames(
+      {aggregateIdentifier: "20d765fd-59b2-47cd-894f-6c144e3b01a5", invokerSegment: 1, sequence: 2, event: "(id = 1175)"},
+      [{type: "entry", invokerSegment: 0, segmentId: 1, sequence: 2},
+      {type: "entry", invokerSegment: 3, segmentId: 1, sequence: 2},
+      {type: "entry", invokerSegment: 4, segmentId: 1, sequence: 2},
+      {type: "entry", invokerSegment: 2, segmentId: 1, sequence: 2},
+      {type: "entry", invokerSegment: 1, segmentId: 1, sequence: 2},
+      {type: "exit", segmentId: 1, sequence: 2}
+    ]));
  frames = _.map(frames, function (frame, idx) {
   return function () { return [frame.create(), newMessage(idx, frame.message)] };
  })

@@ -51,6 +51,10 @@ var commandHandlerInvokerModel = {
      segmentId: 3,
      processing: ""
    },
+   {
+     segmentId: 4,
+     processing: ""
+   },
  ]
 };
 
