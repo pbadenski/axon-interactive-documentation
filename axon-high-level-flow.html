@@ -1,0 +1,155 @@
+<html>
+  <head>
+    <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+    <script src="helpers/animations.js"></script>
+    <script src="helpers/views.js"></script>
+    <link rel="stylesheet" href="sequence/sequence-diagram.css">
+    <link rel="stylesheet" href="sequence/sequence-diagram-columns.css">
+    <style>
+     body {
+        font-family: "Trebuchet MS", sans-serif;
+     }
+     .sequence-diagram-layout {
+        width: 3000px;
+     }
+     .sequence-diagram-layout .header {
+        height: 50px;
+     }
+     .sequence-diagram-layout .header .entity:nth-child(odd) {
+        top: 5px;
+     }
+    </style>
+  </head>
+  <body>
+    <script>
+    $(function () {
+      $(".entity, .line, .action").hide().css("opacity", 0)
+      $(".user").show().css("opacity", 1)
+      var call = function (clazz, method) {
+        return function () {
+          return [
+            TweenLite.to($("." + clazz), 1, {display: "block", opacity: 1}),
+            TweenLite.to($("." + clazz + "-" + method), 1, {display: "block", opacity: 1})
+          ];
+        };
+      }
+      var frames = [
+        call("http-endpoint", "create"),
+        call("rest-controller", "create-aggregate"),
+        call("command-gateway", "send"),
+        call("command-bus", "dispatch"),
+        call("distributed-command-bus", "intercept"),
+        call("jgroups-connector", "send"),
+        call("jchannel-sender", "send"),
+        call("jchannel-receiver", ""),
+        call("jgroups-connector-message-receiver", "receive"),
+        call("simple-command-bus", "dispatch"),
+        call("simple-command-bus", "intercept"),
+        call("unit-of-work-factory", "create-unit-of-work"),
+        call("command-handler", "handle"),
+        call("unit-of-work", "commit"),
+        call("command-callback", "on-success"),
+      ];
+      var animation = new TimelineMax({paused: true, ease: Quad.easeOut})
+      _.each(frames, function (frame, idx) {
+        animation.add("" + idx)
+        animation.add(frame(), "+=0.01")
+      });
+      animation.play()
+    });
+    </script>
+    <div class="sequence-diagram-layout">
+        <div class="header">
+          <div class="entity col-1-20 user">User</div>
+          <div class="entity col-2-20 http-endpoint">HTTP Endpoint</div>
+          <div class="entity col-3-20 rest-controller">REST Controller</div>
+          <div class="entity col-4-20 command-gateway">CommandGateway</div>
+          <div class="entity col-5-20 command-bus">CommandBus</div>
+          <div class="entity col-6-20 distributed-command-bus">DistributedCommandBus</div>
+          <div class="entity col-7-20 jgroups-connector">JGroupsConnector</div>
+          <div class="entity col-8-20 jchannel-sender">JChannel (Sender)</div>
+          <div class="entity col-9-20 jchannel-receiver">JChannel (Receiver)</div>
+          <div class="entity col-10-20 jgroups-connector-message-receiver">JGroupsConnector$MessageReceiver</div>
+          <div class="entity col-11-20 simple-command-bus">SimpleCommandBus</div>
+          <div class="entity col-12-20 unit-of-work-factory">UnitOfWorkFactory</div>
+          <div class="entity col-13-20 command-handler">CommandHandler</div>
+          <div class="entity col-14-20 unit-of-work">UnitOfWork</div>
+          <div class="entity col-15-20 command-callback">CommandCallback</div>
+        </div>
+        <div class="body">
+          <div class="lifelines">
+            <div class="line left-1-20 user"></div>
+            <div class="line left-2-20 http-endpoint"></div>
+            <div class="line left-3-20 rest-controller"></div>
+            <div class="line left-4-20 command-gateway"></div>
+            <div class="line left-5-20 command-bus"></div>
+            <div class="line left-6-20 distributed-command-bus"></div>
+            <div class="line left-7-20 jgroups-connector"></div>
+            <div class="line left-8-20 jchannel-sender"></div>
+            <div class="line left-9-20 jchannel-receiver"></div>
+            <div class="line left-10-20 jgroups-connector-message-receiver"></div>
+            <div class="line left-11-20 simple-command-bus"></div>
+            <div class="line left-12-20 unit-of-work-factory"></div>
+            <div class="line left-13-20 command-handler"></div>
+            <div class="line left-14-20 unit-of-work"></div>
+            <div class="line left-15-20 command-callback"></div>
+          </div>
+
+          <div class="action left-1-20 right-2-20 http-endpoint-create">
+            <img class="arrow-right" src="sequence/images/arrow-right.png" />
+            <span>/create</span>
+          </div>
+          <div class="action left-2-20 right-3-20 rest-controller-create-aggregate">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            createAggregate
+          </div>
+          <div class="action left-3-20 right-4-20 command-gateway-send">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            <span>send(createAggregateCommand)</span>
+          </div>
+          <div class="action left-4-20 right-5-20 command-bus-dispatch">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            dispatch(commandMessage)
+          </div>
+          <div class="action left-5-20 right-6-20 distributed-command-bus-intercept">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            intercept(commandMessage)
+          </div>
+          <div class="action left-5-20 right-7-20 jgroups-connector-send">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            send(routingKey, commandMessage)
+          </div>
+          <div class="action left-7-20 right-8-20 jchannel-sender-send">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            send(destinationAddress, dispatchMessage)
+          </div>
+          <div class="action left-9-20 right-10-20 jgroups-connector-message-receiver-receive">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            receive(message)
+          </div>
+          <div class="action left-10-20 right-11-20 simple-command-bus-dispatch">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            dispatch(commandMessage)
+          </div>
+          <div class="action left-11-20 right-12-20 unit-of-work-factory-create-unit-of-work">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            createUnitOfWork
+          </div>
+          <div class="action left-11-20 right-13-20 command-handler-handle">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            handle(commandMessage)
+          </div>
+          <div class="action left-11-20 right-14-20 unit-of-work-commit">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            commit
+          </div>
+          <div class="action left-11-20 right-15-20 command-callback-on-success">
+            <img class="arrow-right" src="sequence/images/arrow-right.png">
+            onSuccess(result)
+          </div>
+        </div>
+    </div>
+  </body> 
+</html>
