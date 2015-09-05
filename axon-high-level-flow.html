@@ -25,6 +25,52 @@
   <body>
     <script>
     $(function () {
+      var extractMethodName = function (methodCall) {
+        return methodCall
+          .replace(/\//, '')
+          .replace(/\(.*\)/, '')
+      }
+      var dashize = function (word) {
+        return word
+          .replace(/[\(\)]/g, '')
+          .replace(/([a-z])([A-Z])/g, '$1-$2')
+          .replace(/[\.\s\$]/g, '-')
+          .toLowerCase()
+      };
+      var flow = [
+        {from: "User", to: "HTTP Endpoint", action: "/create"},
+        {from: "HTTP Endpoint", to: "REST Controller", action: "createAggregateCommand"},
+        {from: "REST Controller", to: "CommandGateway", action: "send(createAggregateCommand)"},
+        {from: "CommandGateway", to: "CommandBus", action: "dispatch(commandMessage)"},
+        {from: "CommandBus", to: "DistributedCommandBus", action: "intercept(commandMessage)"},
+        {from: "CommandBus", to: "JGroupsConnector", action: "send(routingKey, commandMessage)"},
+        {from: "JGroupsConnector", to: "JChannel (Sender)", action: "send(destinationAddress, dispatchMessage)"},
+        {from: "JChannel (Receiver)", to: "JGroupsConnector$MessageReceiver", action: "receive(message)"},
+        {from: "JGroupsConnector$MessageReceiver", to: "SimpleCommandBus", action: "dispatch(commandMessage)"},
+        {from: "SimpleCommandBus", to: "UnitOfWorkFactory", action: "createUnitOfWork"},
+        {from: "SimpleCommandBus", to: "CommandHandler", action: "handle(commandMessage)"},
+        {from: "SimpleCommandBus", to: "UnitOfWork", action: "commit"},
+        {from: "SimpleCommandBus", to: "CommandCallback", action: "onSuccess(result)"}
+      ];
+      var buildFlow = function (flow) {
+        var entities = _.unique(_.flatten(_.map(flow, function (each) { return [each["from"], each["to"]] })))
+        var entitiesByIndex = _.object(_.map(entities, function (each, i) { return [each, i + 1]; }))
+        _.mapObject(entitiesByIndex, function (i, each) {
+          $(".objects .header").append("<div class='entity col-" + i + "-20 " + dashize(each) + "'>" + each + "</div>")
+          $(".objects .lifelines").append("<div class='line left-" + i + "-20 " + dashize(each) + "'></div>")
+        });
+        _.each(flow, function(entry) {
+            var fromIndex = entitiesByIndex[entry.from];
+            var toIndex = entitiesByIndex[entry.to];
+            var fullMethodCall = dashize(entry.to + "." + extractMethodName(entry.action));
+            var action = "<div class='action left-" + fromIndex + "-20 right-" + toIndex + "-20 " + fullMethodCall + "'>" +
+              "<img class='arrow-right' src='sequence/images/arrow-right.png' />" +
+              "<span>" + entry.action + "</span>" +
+            "</div>";
+            $(".body").append(action);
+        })
+      }(flow);
+
       $(".entity, .line, .action").hide().css("opacity", 0)
       $(".user").show().css("opacity", 1)
       var call = function (clazz, method) {
@@ -61,93 +107,10 @@
     });
     </script>
     <div class="sequence-diagram-layout">
-        <div class="header">
-          <div class="entity col-1-20 user">User</div>
-          <div class="entity col-2-20 http-endpoint">HTTP Endpoint</div>
-          <div class="entity col-3-20 rest-controller">REST Controller</div>
-          <div class="entity col-4-20 command-gateway">CommandGateway</div>
-          <div class="entity col-5-20 command-bus">CommandBus</div>
-          <div class="entity col-6-20 distributed-command-bus">DistributedCommandBus</div>
-          <div class="entity col-7-20 jgroups-connector">JGroupsConnector</div>
-          <div class="entity col-8-20 jchannel-sender">JChannel (Sender)</div>
-          <div class="entity col-9-20 jchannel-receiver">JChannel (Receiver)</div>
-          <div class="entity col-10-20 jgroups-connector-message-receiver">JGroupsConnector$MessageReceiver</div>
-          <div class="entity col-11-20 simple-command-bus">SimpleCommandBus</div>
-          <div class="entity col-12-20 unit-of-work-factory">UnitOfWorkFactory</div>
-          <div class="entity col-13-20 command-handler">CommandHandler</div>
-          <div class="entity col-14-20 unit-of-work">UnitOfWork</div>
-          <div class="entity col-15-20 command-callback">CommandCallback</div>
-        </div>
-        <div class="body">
-          <div class="lifelines">
-            <div class="line left-1-20 user"></div>
-            <div class="line left-2-20 http-endpoint"></div>
-            <div class="line left-3-20 rest-controller"></div>
-            <div class="line left-4-20 command-gateway"></div>
-            <div class="line left-5-20 command-bus"></div>
-            <div class="line left-6-20 distributed-command-bus"></div>
-            <div class="line left-7-20 jgroups-connector"></div>
-            <div class="line left-8-20 jchannel-sender"></div>
-            <div class="line left-9-20 jchannel-receiver"></div>
-            <div class="line left-10-20 jgroups-connector-message-receiver"></div>
-            <div class="line left-11-20 simple-command-bus"></div>
-            <div class="line left-12-20 unit-of-work-factory"></div>
-            <div class="line left-13-20 command-handler"></div>
-            <div class="line left-14-20 unit-of-work"></div>
-            <div class="line left-15-20 command-callback"></div>
-          </div>
-
-          <div class="action left-1-20 right-2-20 http-endpoint-create">
-            <img class="arrow-right" src="sequence/images/arrow-right.png" />
-            <span>/create</span>
-          </div>
-          <div class="action left-2-20 right-3-20 rest-controller-create-aggregate">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            createAggregate
-          </div>
-          <div class="action left-3-20 right-4-20 command-gateway-send">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            <span>send(createAggregateCommand)</span>
-          </div>
-          <div class="action left-4-20 right-5-20 command-bus-dispatch">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            dispatch(commandMessage)
-          </div>
-          <div class="action left-5-20 right-6-20 distributed-command-bus-intercept">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            intercept(commandMessage)
-          </div>
-          <div class="action left-5-20 right-7-20 jgroups-connector-send">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            send(routingKey, commandMessage)
-          </div>
-          <div class="action left-7-20 right-8-20 jchannel-sender-send">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            send(destinationAddress, dispatchMessage)
-          </div>
-          <div class="action left-9-20 right-10-20 jgroups-connector-message-receiver-receive">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            receive(message)
-          </div>
-          <div class="action left-10-20 right-11-20 simple-command-bus-dispatch">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            dispatch(commandMessage)
-          </div>
-          <div class="action left-11-20 right-12-20 unit-of-work-factory-create-unit-of-work">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            createUnitOfWork
-          </div>
-          <div class="action left-11-20 right-13-20 command-handler-handle">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            handle(commandMessage)
-          </div>
-          <div class="action left-11-20 right-14-20 unit-of-work-commit">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            commit
-          </div>
-          <div class="action left-11-20 right-15-20 command-callback-on-success">
-            <img class="arrow-right" src="sequence/images/arrow-right.png">
-            onSuccess(result)
+        <div class="objects">
+          <div class="header"></div>
+          <div class="body">
+            <div class="lifelines"></div>
           </div>
         </div>
     </div>
